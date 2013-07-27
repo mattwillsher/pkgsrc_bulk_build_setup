@@ -4,6 +4,9 @@
 #
 # (c) Jonathan Perkin, 2013
 # (c) Matt Willsher <matt@monki.org.uk>, 2013
+#
+# Work in progress!
+#
 
 PKGSRC_REPO='https://github.com/jsonn/pkgsrc'
 PKGSRC_BRANCH='2013Q2'
