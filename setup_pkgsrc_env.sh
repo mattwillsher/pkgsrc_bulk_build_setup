@@ -17,6 +17,7 @@ CONTENT_ROOT='/content' # Root of content tree
 PROVIDER_DIR="${PROVIDER_NAME}/" 
 OPT_PATH="/opt/${PROVIDER_DIR}local" # Path for /, /etc and /var anchoring
 PBULK_PATH="/opt/${PROVIDER_DIR}pbulk" # Location for pbulk install
+CHROOT_PATH="/chroot"
 
 PKGSRC_REPO='https://github.com/jsonn/pkgsrc' # Where to get pkgsrc tree from
 
@@ -32,7 +33,8 @@ export SH=/bin/bash
 
 mkdir -p ${CONTENT_ROOT}/{distfiles,mk,packages/bootstrap,scripts}
 
-cat >${CONTENT_ROOT}/mk/mk-generic.conf <<EOF
+[[ -f ${CONTENT_ROOT}/mk/mk-generic.conf ]] ||
+  cat >${CONTENT_ROOT}/mk/mk-generic.conf <<EOF
 ALLOW_VULNERABLE_PACKAGES=	yes
 SKIP_LICENSE_CHECK=		yes
 DISTDIR=			${CONTENT_ROOT}/distfiles
@@ -61,10 +63,13 @@ cat >${CONTENT_ROOT}/mk/mk-pkg.conf <<EOF
 
 PACKAGES=	${CONTENT_ROOT}/packages/${PKGSRC_BRANCH}/x86_64
 WRKOBJDIR=	/home/pbulk/build
+
+PREFER_PKGSRC=	yes
 EOF
 
 pushd $CONTENT_ROOT
-[[ -d pkgsrc ]] || git clone ${PKGSRC_REPO}
+[[ -d pkgsrc ]] ||
+  git clone ${PKGSRC_REPO}
 
 pushd pkgsrc
 git checkout pkgsrc_${PKGSRC_BRANCH}
@@ -100,3 +105,76 @@ do
   CFLAGS=-Wno-unused-result bmake package-install
   popd
 done
+
+id pbulk || 
+  ( groupadd pbulk && useradd -g pbulk -c 'pkgsrc pbulk user' -m -s /bin/bash pbulk )
+
+## Update shell path if profile.d is used
+if [[ -d /etc/profile.d ]]
+then
+  cat >/etc/profile.d/pkgsrc-pbulk.sh <<EOF
+PATH=${PBULK_PATH}/sbin:${PBULK_PATH}/bin:\$PATH
+export PATH
+EOF
+else
+  cat >>EOF
+Remember to update your shell PATH env var to include
+${PBULK_PATH}/sbin and ${PBULK_PATH}/bin
+EOF
+fi
+
+# Setup chroot
+[[ -d ${CHROOT_PATH} ]] ||
+  mkdir ${CHROOT_PATH}
+
+cat >${CONTENT_ROOT}/scripts/mksandbox <<EOF
+#!/bin/sh
+
+chrootdir=\$1; shift
+
+while true
+do
+	# XXX: limited_list builds can recreate chroots too fast.
+	if [ -d \${chrootdir} ]; then
+		echo "Chroot \${chrootdir} exists, retrying in 10 seconds or ^C to quit"
+		sleep 10
+	else
+		break
+	fi
+done
+
+${PBULK_PATH}/sbin/mksandbox --without-pkgsrc \\
+  --rodirs=${PBULK_PATH} --rwdirs=${CONTENT_ROOT} \${chrootdir} >/dev/null 2>&1
+mkdir -p \${chrootdir}/home/pbulk
+chown pbulk:pbulk \${chrootdir}/home/pbulk
+EOF
+
+cat >${CONTENT_ROOT}/scripts/rmsandbox <<EOF
+#!/bin/sh
+
+chrootdir=\`echo \$1 | sed -e 's,/\$,,'\`; shift
+
+if [ -d \${chrootdir} ]; then
+	#
+	# Try a few times to unmount the sandbox, just in case there are any
+	# lingering processes holding mounts open.
+	#
+	for retry in 1 2 3
+	do
+		\${chrootdir}/sandbox umount >/dev/null 2>&1
+		mounts=\`mount -v | grep "\${chrootdir}/"\`
+		if [ -z "\${mounts}" ]; then
+			rm -rf \${chrootdir}
+			break
+		else
+			sleep 5
+		fi
+	done
+fi
+EOF
+
+chmod u+x ${CONTENT_ROOT}/scripts/{rm,mk}sandbox
+
+[[ -d ${CHROOT_PATH}/build-bootstrap ]] ||
+  ${CONTENT_ROOT}/scripts/mksandbox ${CHROOT_PATH}/build-bootstrap
+
