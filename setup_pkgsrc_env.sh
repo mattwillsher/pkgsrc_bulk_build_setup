@@ -8,16 +8,19 @@
 # Work in progress!
 #
 
-PKGSRC_REPO='https://github.com/jsonn/pkgsrc'
-PKGSRC_BRANCH='2013Q2'
-CONTENT_ROOT='/content'
-PROVIDER_DIR='monki/' # This can be a LANANA name or similar
+# Edit these
+PKGSRC_BRANCH='2013Q2' # pkgsrc branch to use
+PROVIDER_NAME='monki' # This can be a LANANA name or similar. Used for folder under /opt
 
+# These are default paths
+CONTENT_ROOT='/content' # Root of content tree
+PROVIDER_DIR="${PROVIDER_NAME}/" 
 OPT_PATH="/opt/${PROVIDER_DIR}local" # Path for /, /etc and /var anchoring
-PBULK_PATH="/opt/${PROVIDER_DIR}pbulk"
+PBULK_PATH="/opt/${PROVIDER_DIR}pbulk" # Location for pbulk install
+
+PKGSRC_REPO='https://github.com/jsonn/pkgsrc' # Where to get pkgsrc tree from
 
 set -e
-set -x
 
 if [[ $EUID != 0 ]]; then
   echo "Script needs to be run as root"
