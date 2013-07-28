@@ -11,7 +11,7 @@
 PKGSRC_REPO='https://github.com/jsonn/pkgsrc'
 PKGSRC_BRANCH='2013Q2'
 CONTENT_ROOT='/content'
-PROVIDER_DIR='BoxUK/' # This can be a LANANA name or similar
+PROVIDER_DIR='monki/' # This can be a LANANA name or similar
 
 OPT_PATH="/opt/${PROVIDER_DIR}local" # Path for /, /etc and /var anchoring
 PBULK_PATH="/opt/${PROVIDER_DIR}pbulk"
