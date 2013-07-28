@@ -21,11 +21,14 @@ PBULK_PATH="/opt/${PROVIDER_DIR}pbulk" # Location for pbulk install
 PKGSRC_REPO='https://github.com/jsonn/pkgsrc' # Where to get pkgsrc tree from
 
 set -e
+set -x
 
 if [[ $EUID != 0 ]]; then
   echo "Script needs to be run as root"
   exit 1
 fi
+
+export SH=/bin/bash
 
 mkdir -p ${CONTENT_ROOT}/{distfiles,mk,packages/bootstrap,scripts}
 
@@ -72,13 +75,12 @@ patches["mksandbox-1.3.diff"]="a010aeb1ac05474b889e370113f8f0e1"
 patches["pbulk-joyent.diff"]="b87c6d78b116708aae94b1a92bf13e86" 
 for patch_file in "${!patches[@]}"
 do
-  echo -n Applying patch ${patch_file}:  ' '
+  [[ -f .${patch_file}.done ]] && continue  # Skip if already applied
   curl -Os http://www.netbsd.org/~jperkin/${patch_file}
   md5sum $patch_file | grep ^${patches["$patch_file"]}' ' >/dev/null ||
     ( echo error checksum mismatch ; exit 1 )
-  patch -p0 -N -s -r- -i $patch_file 2>&1 >/dev/null || true
-  rm $patch_file
-  echo OK
+  patch -p0 -N -s -r- -i $patch_file 2>&1 >/dev/null 
+  mv $patch_file .${patch_file}.done
 done
 
 if [[ ! -d /opt/${PROVIDER_DIR}pbulk ]]
@@ -95,6 +97,6 @@ PATH=${PBULK_PATH}/sbin:${PBULK_PATH}/bin:$PATH
 for pkg in pkgtools/pbulk pkgtools/mksandbox
 do
   pushd $pkg
-  bmake package-install
+  CFLAGS=-Wno-unused-result bmake package-install
   popd
 done
