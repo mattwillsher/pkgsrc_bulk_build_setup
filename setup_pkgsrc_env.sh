@@ -205,7 +205,8 @@ EOF
   ${CONTENT_PATH}/scripts/rmsandbox ${CHROOT_PATH}/build-bootstrap
 fi
 
-echo Now edit ${PBULK_PATH}/etc/pbulk.conf and you're good to go
+echo "Now edit ${PBULK_PATH}/etc/pbulk.conf and you're good to go"
+
 exit 0
 
 
