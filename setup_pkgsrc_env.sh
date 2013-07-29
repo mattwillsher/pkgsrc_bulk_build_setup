@@ -20,10 +20,9 @@ PBULK_PATH="/opt/${PROVIDER_DIR}pbulk" # Location for pbulk install
 CHROOT_PATH="/chroot"
 
 PKGSRC_REPO='https://github.com/jsonn/pkgsrc' # Where to get pkgsrc tree from
-PREFER_PKGSRC='yes'
+PREFER_PKGSRC='yes' # Value to set prefer-pkgsrc to during bootstrap
 
 set -e
-set -x
 
 if [[ $EUID != 0 ]]; then
   echo "Script needs to be run as root"
@@ -31,6 +30,8 @@ if [[ $EUID != 0 ]]; then
 fi
 
 export SH=/bin/bash
+
+echo "Creating initial content tree under $CONTENT_PATH"
 
 mkdir -p ${CONTENT_PATH}/{distfiles,mk,packages/bootstrap,scripts}
 
@@ -67,6 +68,8 @@ WRKOBJDIR=	/home/pbulk/build
 PREFER_PKGSRC=  yes
 EOF
 
+echo Checking out ${CONTENT_PATH}/pkgsrc
+
 pushd $CONTENT_PATH
 [[ -d pkgsrc ]] ||
   git clone ${PKGSRC_REPO}
@@ -81,6 +84,7 @@ patches["pbulk-joyent.diff"]="b87c6d78b116708aae94b1a92bf13e86"
 for patch_file in "${!patches[@]}"
 do
   [[ -f .${patch_file}.done ]] && continue  # Skip if already applied
+  echo Applying patch $patch_file
   curl -Os http://www.netbsd.org/~jperkin/${patch_file}
   md5sum $patch_file | grep ^${patches["$patch_file"]}' ' >/dev/null ||
     ( echo error checksum mismatch ; exit 1 )
@@ -91,6 +95,7 @@ done
 
 if [[ ! -f ${PBULK_PATH}/bin/bmake ]]
 then
+  echo "Building pbulk bootstrap"
   pushd bootstrap
   [[ -d work ]] && rm -r work
   ./bootstrap --abi=64 --prefix=${PBULK_PATH} \
@@ -103,12 +108,13 @@ fi
 PATH=${PBULK_PATH}/sbin:${PBULK_PATH}/bin:$PATH
 for pkg in pkgtools/pbulk pkgtools/mksandbox
 do
+  echo Building $pkg
   pushd $pkg
   CFLAGS=-Wno-unused-result bmake package-install
   popd
 done
 
-id pbulk ||
+id pbulk >/dev/null ||
   ( groupadd pbulk && useradd -g pbulk -c 'pkgsrc pbulk user' -m -s /bin/bash pbulk )
 
 ## Update shell path if profile.d is used
@@ -200,12 +206,15 @@ cd ${CONTENT_PATH}/pkgsrc/bootstrap
 ./cleanup
 EOF
 
+  echo "Building real environment bootstrap"
   chmod +x ${CHROOT_PATH}/build-bootstrap/build-bootstrap.sh
   ${CHROOT_PATH}/build-bootstrap/sandbox /build-bootstrap.sh
   ${CONTENT_PATH}/scripts/rmsandbox ${CHROOT_PATH}/build-bootstrap
 fi
 
 echo "Now edit ${PBULK_PATH}/etc/pbulk.conf and you're good to go"
+
+echo "DONE"
 
 exit 0
 
