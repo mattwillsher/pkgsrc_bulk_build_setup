@@ -1,0 +1,5 @@
+Scriptifaction of http://www.perkin.org.uk/posts/distributed-chrooted-pkgsrc-bulk-builds.html
+
+See the article for information on configuring pbulk.conf and next steps.
+
+Testing on Ubuntu 12.04.2 and CentOS 6.4
