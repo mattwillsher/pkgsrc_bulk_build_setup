@@ -89,7 +89,7 @@ do
 done
 
 
-if [[ ! -d /opt/${PROVIDER_DIR}pbulk/bin/bmake ]]
+if [[ ! -f ${PBULK_PATH}/bin/bmake ]]
 then
   pushd bootstrap
   [[ -d work ]] && rm -r work
