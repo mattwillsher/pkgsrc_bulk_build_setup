@@ -20,6 +20,7 @@ PBULK_PATH="/opt/${PROVIDER_DIR}pbulk" # Location for pbulk install
 CHROOT_PATH="/chroot"
 
 PKGSRC_REPO='https://github.com/jsonn/pkgsrc' # Where to get pkgsrc tree from
+PREFER_PKGSRC='yes'
 
 set -e
 set -x
@@ -83,16 +84,18 @@ do
   curl -Os http://www.netbsd.org/~jperkin/${patch_file}
   md5sum $patch_file | grep ^${patches["$patch_file"]}' ' >/dev/null ||
     ( echo error checksum mismatch ; exit 1 )
-  patch -p0 -N -s -r- -i $patch_file 2>&1 >/dev/null
+  patch -p0 -N -t -s -r- -i $patch_file 
   mv $patch_file .${patch_file}.done
 done
 
-if [[ ! -d /opt/${PROVIDER_DIR}pbulk ]]
+
+if [[ ! -d /opt/${PROVIDER_DIR}pbulk/bin/bmake ]]
 then
   pushd bootstrap
+  [[ -d work ]] && rm -r work
   ./bootstrap --abi=64 --prefix=${PBULK_PATH} \
     --mk-fragment=${CONTENT_PATH}/mk/mk-pbulk.conf \
-    --prefer-pkgsrc yes
+    --prefer-pkgsrc ${PREFER_PKGSRC}
   ./cleanup
   popd
 fi
@@ -189,7 +192,7 @@ cd ${CONTENT_PATH}/pkgsrc/bootstrap
 ./bootstrap --abi 64 \
   --gzip-binary-kit ${CONTENT_PATH}/packages/bootstrap/bootstrap-${PKGSRC_BRANCH}-pbulk.tar.gz \
   --mk-fragment ${CONTENT_PATH}/mk/mk-pkg.conf \
-  --prefer-pkgsrc yes \
+  --prefer-pkgsrc ${PREFER_PKGSRC} \
   --prefix ${OPT_PATH} \
   --varbase /var${OPT_PATH} \
   --sysconfdir /etc${OPT_PATH} \
@@ -201,3 +204,8 @@ EOF
   ${CHROOT_PATH}/build-bootstrap/sandbox /build-bootstrap.sh
   ${CONTENT_PATH}/scripts/rmsandbox ${CHROOT_PATH}/build-bootstrap
 fi
+
+echo Now edit ${PBULK_PATH}/etc/pbulk.conf and you're good to go
+exit 0
+
+
