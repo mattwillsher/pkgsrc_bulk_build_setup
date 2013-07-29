@@ -3,3 +3,16 @@ Scriptifaction of http://www.perkin.org.uk/posts/distributed-chrooted-pkgsrc-bul
 See the article for information on configuring pbulk.conf and next steps.
 
 Testing on Ubuntu 12.04.2 and CentOS 6.4
+
+Initial environment setup
+
+Ubuntu 12.04.2:
+
+# apt-get install build-essential git libncurses5-dev zlib1g-dev libssl-dev patch
+
+
+CentOS/RHEL 6.4:
+
+
+yum install gcc libncurses-devel zlib zlib-devel openssl-devel patch gcc-c++ patch
+
