@@ -14,5 +14,5 @@ Ubuntu 12.04.2:
 CentOS/RHEL 6.4:
 
 
-# yum install gcc libncurses-devel zlib zlib-devel openssl-devel patch gcc-c++ patch
+# yum install gcc libncurses-devel zlib zlib-devel openssl-devel patch gcc-c++ patch git
 
